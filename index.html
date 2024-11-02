@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Procedural Terrain Generation</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f0f0f0;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        h1 {
+            color: #333;
+        }
+
+        .controls {
+        margin-bottom: 20px;
+        padding: 10px;
+        background-color: #fff;
+        border: 1px solid #ccc;
+        border-radius: 5px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        display: flex;
+        flex-direction: column;
+        align-items: center; /* Center child elements horizontally */
+    }
+
+    .controls label {
+        margin-right: 10px;
+    }
+
+    .controls input {
+        border: 1px solid #ccc;
+        border-radius: 3px;
+    }
+
+    .controls button {
+        border: none;
+        background-color: #007bff;
+        color: #fff;
+        border-radius: 3px;
+        cursor: pointer;
+        padding: 5px 10px;
+        margin-top: 10px;
+    }
+
+    .controls button:hover {
+        background-color: #0056b3;
+    }
+
+    .cell {
+        width: 20px;
+        height: 20px;
+        display: inline-block;
+    }
+    </style>
+</head>
+<body>
+    <h1>Procedural Terrain Generation</h1>
+    <div class="controls">
+        <label for="seed" title="The seed value for the random number generator">Seed:</label>
+        <input type="number" id="seed" value="0" />
+        <label for="width" title="The width of the terrain grid">Width:</label>
+        <input type="number" id="width" value="10" />
+        <label for="height" title="The height of the terrain grid">Height:</label>
+        <input type="number" id="height" value="10" />
+        <label for="octaves" title="The number of layers of noise to combine">Octaves:</label>
+        <input type="number" id="octaves" value="4" />
+        <label for="persistence" title="The amplitude reduction factor for each octave">Persistence:</label>
+        <input type="number" id="persistence" step="0.1" value="0.5" />
+        <button id="generate">Generate Terrain</button>
+    </div>
+    <div id="terrain"></div>
+    <script>
+        let terrainTypes = [
+            { type: "water", color: "blue", threshold: 0.4 },
+            { type: "grass", color: "green", threshold: 0.6 },
+            { type: "mountain", color: "gray", threshold: 1 },
+        ];
+
+        function generateTerrain(width, height, octaveCount, persistence, seed) {
+            const world = [];
+            for (let y = 0; y < height; y++) {
+                const row = [];
+                for (let x = 0; x < width; x++) {
+                    const noiseValue = perlinNoise(
+                        (x + seed) / width,
+                        (y + seed) / height,
+                        octaveCount,
+                        persistence
+                    );
+                    const terrainType = getTerrainType(noiseValue);
+                    row.push(terrainType);
+                }
+                world.push(row);
+            }
+            return world;
+        }
+
+        function perlinNoise(x, y, octaveCount, persistence) {
+            let total = 0;
+            let frequency = 1;
+            let amplitude = 1;
+            let maxValue = 0;
+
+            for (let i = 0; i < octaveCount; i++) {
+                total += noise(x * frequency, y * frequency) * amplitude;
+                maxValue += amplitude;
+                amplitude *= persistence;
+                frequency *= 2;
+            }
+
+            return total / maxValue;
+        }
+
+        function noise(x, y) {
+            const n = Math.floor(x) + Math.floor(y) * 57;
+            return (Math.sin(n) * 43758.5453123) % 1;
+        }
+
+        function getTerrainType(value) {
+            for (let terrain of terrainTypes) {
+                if (value < terrain.threshold) {
+                    return terrain;
+                }
+            }
+        }
+
+        function displayTerrain(world) {
+            const terrainElement = document.getElementById("terrain");
+            terrainElement.innerHTML = "";
+
+            for (let row of world) {
+                for (let cell of row) {
+                    const cellElement = document.createElement("div");
+                    cellElement.className = "cell";
+                    cellElement.style.backgroundColor = cell.color;
+                    terrainElement.appendChild(cellElement);
+                }
+                terrainElement.appendChild(document.createElement("br"));
+            }
+        }
+
+        document.getElementById("generate").addEventListener("click", () => {
+            const seed = parseInt(document.getElementById("seed").value);
+            const width = parseInt(document.getElementById("width").value);
+            const height = parseInt(document.getElementById("height").value);
+            const octaveCount = parseInt(document.getElementById("octaves").value);
+            const persistence = parseFloat(document.getElementById("persistence").value);
+
+            const newWorld = generateTerrain(
+                width,
+                height,
+                octaveCount,
+                persistence,
+                seed
+            );
+            displayTerrain(newWorld);
+        });
+
+        const defaultWorld = generateTerrain(10, 10, 4, 0.5, 0);
+        displayTerrain(defaultWorld);
+    </script>
+</body>
+</html>
